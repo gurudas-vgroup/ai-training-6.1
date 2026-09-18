@@ -28,6 +28,9 @@ const baseOptions = {
   systemPrompt: SYSTEM_PROMPT,
 }
 
+// query() yields several message types (system, user, assistant, result, ...).
+// We only care about assistant turns, and only their text blocks — tool_use
+// and other block types are internal to the agent loop, not for display.
 function printAssistantText(message) {
   if (message.type !== 'assistant') return
   for (const block of message.message.content) {
@@ -35,6 +38,7 @@ function printAssistantText(message) {
   }
 }
 
+// One-shot mode: a single string prompt, run to completion, then exit.
 async function runOneShot(prompt) {
   for await (const message of query({ prompt, options: baseOptions })) {
     printAssistantText(message)
@@ -70,6 +74,9 @@ async function* userTurns(rl) {
   }
 }
 
+// Conversational mode: query() is called ONCE with an async generator of user
+// turns (streaming input) rather than a string, so the underlying subprocess
+// stays alive and one session persists across every line the user types.
 async function runRepl() {
   const rl = readline.createInterface({ input: stdin, output: stdout })
   console.log('Shopify Ops Agent — type "exit" or "quit" to leave.\n')
@@ -79,6 +86,7 @@ async function runRepl() {
   }
 }
 
+// A command-line argument means one-shot mode; none means drop into the REPL.
 const requestArg = process.argv.slice(2).join(' ').trim()
 
 if (requestArg) {
